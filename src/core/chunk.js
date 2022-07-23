@@ -19,7 +19,12 @@ class Chunk {
           Math.ceil(chunkSize * chunkSize * chunkSize * 0.5)
         ) * 6 * 4 * Float32Array.BYTES_PER_ELEMENT
       ),
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX,
+      usage: (
+        GPUBufferUsage.COPY_DST
+        | GPUBufferUsage.INDIRECT
+        | GPUBufferUsage.STORAGE
+        | GPUBufferUsage.VERTEX
+      ),
     });
     new Uint32Array(this.faces.getMappedRange())[0] = 6;
     this.faces.unmap();
