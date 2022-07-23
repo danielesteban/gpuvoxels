@@ -1,6 +1,5 @@
 import './main.css';
 import { vec3 } from 'gl-matrix';
-import Atlas from './textures/atlas.js';
 import Renderer from './core/renderer.js';
 import Scenes from './scenes.js';
 import Volume from './core/volume.js';
@@ -14,7 +13,6 @@ const Main = async () => {
   const renderer = new Renderer({
     adapter,
     device,
-    atlas: Atlas(),
   });
   document.getElementById('renderer').appendChild(renderer.canvas);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -48,6 +46,7 @@ const Main = async () => {
       text = text.slice(0, text.indexOf('fn getValueAt(pos : vec3<f32>) -> u32'));
     }
     source.innerText = text;
+    renderer.atlas.compute(scene.atlas);
     volume.setScene(scene.source);
     if (scene.onLoad) {
       scene.onLoad(renderer, volume);

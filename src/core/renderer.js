@@ -1,3 +1,4 @@
+import Atlas from './atlas.js';
 import Camera from './camera.js';
 import Rotation from '../lib/rotation.wgsl';
 import Postprocessing from './postprocessing.js';
@@ -116,40 +117,21 @@ class Renderer {
   constructor({
     adapter,
     device,
-    atlas = { data: new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF]), size: [1, 1, 1] },
+    atlas = null,
     camera = null,
     canvas = null,
     samples = 4,
   }) {
-    this.atlas = device.createTexture({
-      dimension: '2d',
-      size: atlas.size,
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    if (atlas.data) {
-      device.queue.writeTexture(
-        { texture: this.atlas },
-        atlas.data,
-        { bytesPerRow: atlas.size[0] * 4, rowsPerImage: atlas.size[1] },
-        atlas.size
-      );
-    } else {
-      device.queue.copyExternalImageToTexture(
-        { source: atlas.image },
-        { texture: this.atlas },
-        atlas.size
-      );
-    }
+    const format = navigator.gpu.getPreferredCanvasFormat(adapter);
+    this.atlas = atlas || new Atlas({ device });
     this.camera = camera || new Camera({ device });
     this.canvas = canvas || document.createElement('canvas');
     // I have no idea why but if I don't do this, sometimes it crashes with:
     // D3D12 reset command allocator failed with E_FAIL
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
-    this.colorFormat = navigator.gpu.getPreferredCanvasFormat(adapter);
     this.context = this.canvas.getContext('webgpu');
-    this.context.configure({ alphaMode: 'opaque', device, format: this.colorFormat });
+    this.context.configure({ alphaMode: 'opaque', device, format });
     this.device = device;
     this.samples = samples;
     const renderingPipeline = device.createRenderPipeline({
@@ -194,7 +176,7 @@ class Renderer {
         }),
         entryPoint: 'main',
         targets: [
-          { format: this.colorFormat },
+          { format: 'rgba8unorm' },
           { format: 'rgba16float' },
           { format: 'rgba16float' },
         ],
@@ -222,7 +204,7 @@ class Renderer {
           },
           {
             binding: 1,
-            resource: this.atlas.createView({ dimension: '2d-array' }),
+            resource: this.atlas.texture.createView(),
           },
           {
             binding: 2,
@@ -257,7 +239,7 @@ class Renderer {
       geometry: Face(device),
       pipeline: renderingPipeline,
     };
-    this.postprocessing = new Postprocessing({ device, format: this.colorFormat });
+    this.postprocessing = new Postprocessing({ device, format });
   }
 
   render(command, volume) {
@@ -289,7 +271,6 @@ class Renderer {
     const {
       camera,
       canvas,
-      colorFormat,
       device,
       postprocessing,
       rendering,
@@ -316,8 +297,8 @@ class Renderer {
       });
       return object[key].createView();
     };
-    rendering.descriptor.colorAttachments[0].view = updateTexture(rendering, 'colorTexture', samples, colorFormat);
-    rendering.descriptor.colorAttachments[0].resolveTarget = updateTexture(rendering, 'colorTarget', 1, colorFormat);
+    rendering.descriptor.colorAttachments[0].view = updateTexture(rendering, 'colorTexture', samples, 'rgba8unorm');
+    rendering.descriptor.colorAttachments[0].resolveTarget = updateTexture(rendering, 'colorTarget', 1, 'rgba8unorm');
     rendering.descriptor.colorAttachments[1].view = updateTexture(rendering, 'normalTexture', samples, 'rgba16float');
     rendering.descriptor.colorAttachments[1].resolveTarget = updateTexture(rendering, 'normalTarget', 1, 'rgba16float');
     rendering.descriptor.colorAttachments[2].view = updateTexture(rendering, 'positionTexture', samples, 'rgba16float');
