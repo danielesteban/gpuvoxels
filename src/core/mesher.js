@@ -82,6 +82,15 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
 
 class Mesher {
   constructor({ chunks, volume }) {
+    this.pipeline = volume.device.createComputePipeline({
+      layout: 'auto',
+      compute: {
+        module: volume.device.createShaderModule({
+          code: Compute({ chunkSize: volume.chunkSize }),
+        }),
+        entryPoint: 'main',
+      },
+    });
     const neighbor = { x: 0, y: 0, z: 0 };
     const getNeighbor = (chunk, offset) => {
       neighbor.x = chunk.x + offset.x;
@@ -97,15 +106,14 @@ class Mesher {
       const index = neighbor.z * chunks.x * chunks.y + neighbor.y * chunks.x + neighbor.x;
       return volume.chunks[index].voxels;
     };
-    this.pipeline = volume.device.createComputePipeline({
-      layout: 'auto',
-      compute: {
-        module: volume.device.createShaderModule({
-          code: Compute({ chunkSize: volume.chunkSize }),
-        }),
-        entryPoint: 'main',
-      },
-    });
+    const neighbors = [
+      { x: 0, y: 0, z: 1 },
+      { x: 0, y: 1, z: 0 },
+      { x: 0, y: -1, z: 0 },
+      { x: -1, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+    ];
     this.bindings = volume.chunks.map((chunk) => ({
       bindings: volume.device.createBindGroup({
         layout: this.pipeline.getBindGroupLayout(0),
@@ -113,12 +121,9 @@ class Mesher {
           chunk.position,
           chunk.faces,
           chunk.voxels,
-          getNeighbor(chunk.chunk, { x: 0, y: 0, z: 1 }),
-          getNeighbor(chunk.chunk, { x: 0, y: 1, z: 0 }),
-          getNeighbor(chunk.chunk, { x: 0, y: -1, z: 0 }),
-          getNeighbor(chunk.chunk, { x: -1, y: 0, z: 0 }),
-          getNeighbor(chunk.chunk, { x: 1, y: 0, z: 0 }),
-          getNeighbor(chunk.chunk, { x: 0, y: 0, z: -1 }),
+          ...neighbors.map((neighbor) => (
+            getNeighbor(chunk.chunk, neighbor)
+          )),
         ].map((buffer, binding) => ({
           binding,
           resource: { buffer },
