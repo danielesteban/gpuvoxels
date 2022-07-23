@@ -70,6 +70,11 @@ class Time {
     });
   }
 
+  destroy() {
+    const { buffer } = this;
+    buffer.destroy();
+  }
+
   set(value) {
     const { device, buffer, data } = this;
     data[0] = value;
@@ -124,7 +129,7 @@ class Volume {
     const { chunks, edge, time } = this;
     chunks.forEach((chunk) => chunk.destroy());
     edge.destroy();
-    time.buffer.destroy();
+    time.destroy();
   }
 
   setScene(scene) {
