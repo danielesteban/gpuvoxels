@@ -33,7 +33,7 @@ const faceNormal : vec3<f32> = vec3<f32>(0, 0, 1);
 @vertex
 fn main(voxel : VertexInput) -> VertexOutput {
   var rotation : mat3x3<f32>;
-  switch (u32(voxel.face.w % 6)) {
+  switch (i32(voxel.face.w % 6)) {
     default {
       rotation = mat3x3<f32>(
         1, 0, 0,

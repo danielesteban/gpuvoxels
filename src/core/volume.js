@@ -1,20 +1,81 @@
-import Chunk from './chunk.js';
 import Mesher from './mesher.js';
 import Voxelizer from './voxelizer.js';
 
-const Time = (device) => {
-  const time = new Float32Array(1);
-  return {
-    buffer: device.createBuffer({
-      size: time.byteLength,
+class Chunk {
+  constructor({ device, chunk, chunkSize }) {
+    this.chunk = chunk;
+
+    this.faces = device.createBuffer({
+      mappedAtCreation: true,
+      size: (
+        // Indirect drawing buffer
+        4 * Uint32Array.BYTES_PER_ELEMENT
+        + (
+          // Worst-case scenario
+          Math.ceil(chunkSize * chunkSize * chunkSize * 0.5)
+        ) * 6 * 4 * Float32Array.BYTES_PER_ELEMENT
+      ),
+      usage: (
+        GPUBufferUsage.COPY_DST
+        | GPUBufferUsage.INDIRECT
+        | GPUBufferUsage.STORAGE
+        | GPUBufferUsage.VERTEX
+      ),
+    });
+    new Uint32Array(this.faces.getMappedRange())[0] = 6;
+    this.faces.unmap();
+
+    this.position = device.createBuffer({
+      mappedAtCreation: true,
+      size: 3 * Int32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.UNIFORM,
+    });
+    new Int32Array(this.position.getMappedRange()).set([
+      chunk.x * chunkSize,
+      chunk.y * chunkSize,
+      chunk.z * chunkSize,
+    ]);
+    this.position.unmap();
+
+    this.voxels = Chunk.createVoxelsBuffer({ device, chunkSize });
+  }
+
+  destroy() {
+    const { faces, position, voxels } = this;
+    faces.destroy();
+    position.destroy();
+    voxels.destroy();
+  }
+
+  resetInstanceCount(command) {
+    const { faces } = this;
+    command.clearBuffer(faces, 4, 4);
+  }
+
+  static createVoxelsBuffer({ device, chunkSize }) {
+    return device.createBuffer({
+      size: chunkSize * chunkSize * chunkSize * Float32Array.BYTES_PER_ELEMENT,
+      usage: GPUBufferUsage.STORAGE,
+    });
+  }
+}
+
+class Time {
+  constructor({ device }) {
+    this.device = device;
+    this.data = new Float32Array(1);
+    this.buffer = device.createBuffer({
+      size: this.data.byteLength,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-    }),
-    set(value) {
-      time[0] = value;
-      device.queue.writeBuffer(this.buffer, 0, time);
-    },
-  };
-};
+    });
+  }
+
+  set(value) {
+    const { device, buffer, data } = this;
+    data[0] = value;
+    device.queue.writeBuffer(buffer, 0, data);
+  }
+}
 
 class Volume {
   constructor({
@@ -49,7 +110,7 @@ class Volume {
     }
     this.edge = Chunk.createVoxelsBuffer({ device, chunkSize });
     this.mesher = new Mesher({ chunks, volume: this });
-    this.time = Time(device);
+    this.time = new Time({ device });
   }
 
   compute(command, frameTime) {

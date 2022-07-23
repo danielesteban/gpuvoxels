@@ -11,39 +11,39 @@ struct Faces {
 
 @group(0) @binding(0) var<uniform> chunk : vec3<i32>;
 @group(0) @binding(1) var<storage, read_write> faces : Faces;
-@group(0) @binding(2) var<storage, read> voxels : array<u32>;
-@group(0) @binding(3) var<storage, read> voxels_north : array<u32>;
-@group(0) @binding(4) var<storage, read> voxels_top : array<u32>;
-@group(0) @binding(5) var<storage, read> voxels_bottom : array<u32>;
-@group(0) @binding(6) var<storage, read> voxels_west : array<u32>;
-@group(0) @binding(7) var<storage, read> voxels_east : array<u32>;
-@group(0) @binding(8) var<storage, read> voxels_south : array<u32>;
+@group(0) @binding(2) var<storage, read> voxels : array<f32>;
+@group(0) @binding(3) var<storage, read> voxels_north : array<f32>;
+@group(0) @binding(4) var<storage, read> voxels_top : array<f32>;
+@group(0) @binding(5) var<storage, read> voxels_bottom : array<f32>;
+@group(0) @binding(6) var<storage, read> voxels_west : array<f32>;
+@group(0) @binding(7) var<storage, read> voxels_east : array<f32>;
+@group(0) @binding(8) var<storage, read> voxels_south : array<f32>;
 
 ${Voxel({ chunkSize })}
 
-fn getValue(pos : vec3<i32>) -> u32 {
+fn isAir(pos : vec3<i32>) -> bool {
   if (pos.x == -1) {
-    return voxels_west[getVoxel(vec3<i32>(chunkSize - 1, pos.y, pos.z))];
+    return voxels_west[getVoxel(vec3<i32>(chunkSize - 1, pos.y, pos.z))] == 0;
   }
   if (pos.x == chunkSize) {
-    return voxels_east[getVoxel(vec3<i32>(0, pos.y, pos.z))];
+    return voxels_east[getVoxel(vec3<i32>(0, pos.y, pos.z))] == 0.0;
   }
   if (pos.y == -1) {
-    return voxels_bottom[getVoxel(vec3<i32>(pos.x, chunkSize - 1, pos.z))];
+    return voxels_bottom[getVoxel(vec3<i32>(pos.x, chunkSize - 1, pos.z))] == 0;
   }
   if (pos.y == chunkSize) {
-    return voxels_top[getVoxel(vec3<i32>(pos.x, 0, pos.z))];
+    return voxels_top[getVoxel(vec3<i32>(pos.x, 0, pos.z))] == 0;
   }
   if (pos.z == -1) {
-    return voxels_south[getVoxel(vec3<i32>(pos.x, pos.y, chunkSize - 1))];
+    return voxels_south[getVoxel(vec3<i32>(pos.x, pos.y, chunkSize - 1))] == 0;
   }
   if (pos.z == chunkSize) {
-    return voxels_north[getVoxel(vec3<i32>(pos.x, pos.y, 0))];
+    return voxels_north[getVoxel(vec3<i32>(pos.x, pos.y, 0))] == 0;
   }
-  return voxels[getVoxel(pos)]; 
+  return voxels[getVoxel(pos)] == 0; 
 }
 
-fn pushFace(pos : vec3<i32>, face : u32, texture : u32) {
+fn pushFace(pos : vec3<i32>, face : i32, texture : i32) {
   var offset : u32 = atomicAdd(&(faces.instanceCount), 1) * 4;
   faces.data[offset] = f32(pos.x) + 0.5;
   faces.data[offset + 1] = f32(pos.y) + 0.5;
@@ -68,12 +68,13 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
   ) {
     return;
   }
-  var value : u32 = voxels[getVoxel(pos)]; 
+  var value : f32 = voxels[getVoxel(pos)];
   if (value != 0) {
-    for (var face : u32 = 0; face < 6; face++) {
+    var texture : i32 = i32(floor(value) - 1);
+    for (var face : i32 = 0; face < 6; face++) {
       var npos : vec3<i32> = pos + faceNormals[face];
-      if (getValue(npos) == 0) {
-        pushFace(chunk + pos, face, value - 1);
+      if (isAir(npos)) {
+        pushFace(chunk + pos, face, texture);
       }
     }
   }

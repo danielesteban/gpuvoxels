@@ -29,11 +29,11 @@ const SceneA = {
       6
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> u32 {
+  fn getValueAt(pos : vec3<f32>) -> f32 {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + u32(abs(simplexNoise3(pos * 0.01)) * 254.0);
+    return 1 + abs(simplexNoise3(pos * 0.01)) * 254.0;
   }
   `,
 };
@@ -56,11 +56,11 @@ const SceneB = {
       )
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> u32 {
+  fn getValueAt(pos : vec3<f32>) -> f32 {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + u32(abs(simplexNoise3(pos * 0.01)) * 254.0);
+    return 1 + abs(simplexNoise3(pos * 0.01)) * 254.0;
   }
   `,
 };
@@ -69,13 +69,13 @@ const SceneC = {
   onAnimation: Orbit,
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.2, 0.4),
   source: `
-  fn getValueAt(pos : vec3<f32>) -> u32 {
+  fn getValueAt(pos : vec3<f32>) -> f32 {
     var p : vec3<f32> = pos + vec3<f32>(0, 0, time * 100);
     var h : f32 = abs(simplexNoise3(p * 0.01)) * volume.size.y;
     if (pos.y > h) {
       return 0;
     }
-    return 1 + u32(abs(simplexNoise3(p * -0.001)) * 254.0);
+    return 1 + abs(simplexNoise3(p * -0.001)) * 254.0;
   }
   `,
 };
@@ -107,11 +107,11 @@ const SceneD = {
       1
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> u32 {
+  fn getValueAt(pos : vec3<f32>) -> f32 {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + u32(abs(simplexNoise3(floor(pos / 32))) * 254.0);
+    return 1 + abs(simplexNoise3(floor(pos / 32))) * 254.0;
   }
   `,
 };

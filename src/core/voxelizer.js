@@ -6,7 +6,7 @@ import Voxel from '../lib/voxel.js';
 const Compute = ({ chunkSize, width, height, depth, scene }) => `
 @group(0) @binding(0) var<uniform> time : f32;
 @group(0) @binding(1) var<uniform> chunk : vec3<i32>;
-@group(0) @binding(2) var<storage, read_write> voxels : array<u32>;
+@group(0) @binding(2) var<storage, read_write> voxels : array<f32>;
 
 ${Noise}
 ${Rotation}
