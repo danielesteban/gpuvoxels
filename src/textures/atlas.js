@@ -34,7 +34,7 @@ export default (colors = 254) => {
     const s = 0.4 + Math.random() * 0.4;
     const l = 0.3 + Math.random() * 0.4;
     const color = hsl2Rgba(h, s, l);
-    const border = hsl2Rgba((h + 0.75) % 1, s, Math.min(l * 1.5, 1));
+    const border = hsl2Rgba(h, s, Math.min(l * 1.2, 1));
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++, i += 4) {
         const isBorder = x === 0 || y === 0 || x === (size - 1) || y === (size - 1);

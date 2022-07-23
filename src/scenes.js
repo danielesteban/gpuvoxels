@@ -82,7 +82,7 @@ const SceneC = {
 
 const SceneD = {
   onAnimation: Orbit,
-  onLoad: (renderer) => renderer.setClearColor(0, 0, 0),
+  onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
   source: `
   fn distanceToScene(pos : vec3<f32>) -> f32 {
     if (sdSphere(pos - volume.center, volume.size.x * 0.35) > 0.01) {

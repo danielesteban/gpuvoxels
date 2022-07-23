@@ -1,5 +1,6 @@
 import Camera from './camera.js';
 import Rotation from '../lib/rotation.wgsl';
+import Postprocessing from './postprocessing.js';
 
 const Vertex = `
 struct VertexInput {
@@ -10,12 +11,19 @@ struct VertexInput {
 
 struct VertexOutput {
   @builtin(position) position : vec4<f32>,
-  @location(0) normal: vec3<f32>,
-  @location(1) uv: vec2<f32>,
-  @location(2) @interpolate(flat) texture: i32,
+  @location(0) viewPosition: vec3<f32>,
+  @location(1) normal: vec3<f32>,
+  @location(2) uv: vec2<f32>,
+  @location(3) @interpolate(flat) texture: i32,
 }
 
-@group(0) @binding(0) var<uniform> camera : mat4x4<f32>;
+struct Camera {
+  projection : mat4x4<f32>,
+  view : mat4x4<f32>,
+  normal : mat3x3<f32>,
+}
+
+@group(0) @binding(0) var<uniform> camera : Camera;
 
 ${Rotation}
 
@@ -48,9 +56,11 @@ fn main(voxel : VertexInput) -> VertexOutput {
       rotation = rotateY(PI);
     }
   }
+  var mvPosition : vec4<f32> = camera.view * vec4<f32>(rotation * voxel.position + voxel.face.xyz, 1);
   var out : VertexOutput;
-  out.position = camera * vec4<f32>(rotation * voxel.position + voxel.face.xyz, 1);
-  out.normal = rotation * faceNormal;
+  out.position = camera.projection * mvPosition;
+  out.viewPosition = -mvPosition.xyz;
+  out.normal = normalize(camera.normal * rotation * faceNormal);
   out.uv = voxel.uv;
   out.texture = i32(floor(voxel.face.w / 6));
   return out;
@@ -59,17 +69,28 @@ fn main(voxel : VertexInput) -> VertexOutput {
 
 const Fragment = `
 struct FragmentInput {
-  @location(0) normal: vec3<f32>,
-  @location(1) uv: vec2<f32>,
-  @location(2) @interpolate(flat) texture: i32,
+  @location(0) position : vec3<f32>,
+  @location(1) normal : vec3<f32>,
+  @location(2) uv : vec2<f32>,
+  @location(3) @interpolate(flat) texture : i32,
+}
+
+struct FragmentOutput {
+  @location(0) color : vec4<f32>,
+  @location(1) normal : vec4<f32>,
+  @location(2) position : vec4<f32>,
 }
 
 @group(0) @binding(1) var atlas : texture_2d_array<f32>;
 @group(0) @binding(2) var atlasSampler : sampler;
 
 @fragment
-fn main(face : FragmentInput) -> @location(0) vec4<f32> {
-  return textureSample(atlas, atlasSampler, face.uv, face.texture);
+fn main(face : FragmentInput) -> FragmentOutput {
+  var output : FragmentOutput;
+  output.color = textureSample(atlas, atlasSampler, face.uv, face.texture);
+  output.normal = vec4<f32>(normalize(face.normal), 1);
+  output.position = vec4<f32>(face.position, 1);
+  return output;
 }
 `;
 
@@ -130,21 +151,8 @@ class Renderer {
     this.context = this.canvas.getContext('webgpu');
     this.context.configure({ alphaMode: 'opaque', device, format: this.colorFormat });
     this.device = device;
-    this.descriptor = {
-      colorAttachments: [{
-        clearValue: { r: 0, g: 0, b: 0, a: 1 },
-        loadOp: 'clear',
-        storeOp: 'discard',
-      }],
-      depthStencilAttachment: {
-        depthClearValue: 1,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
-      },
-    };
-    this.face = Face(device);
     this.samples = samples;
-    this.pipeline = device.createRenderPipeline({
+    const renderingPipeline = device.createRenderPipeline({
       layout: 'auto',
       vertex: {
         module: device.createShaderModule({
@@ -185,7 +193,11 @@ class Renderer {
           code: Fragment,
         }),
         entryPoint: 'main',
-        targets: [{ format: this.colorFormat }],
+        targets: [
+          { format: this.colorFormat },
+          { format: 'rgba16float' },
+          { format: 'rgba16float' },
+        ],
       },
       primitive: {
         topology: 'triangle-list',
@@ -200,41 +212,74 @@ class Renderer {
         count: this.samples,
       },
     });
-    this.bindings = device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: { buffer: this.camera.buffer },
+    this.rendering = {
+      bindings: device.createBindGroup({
+        layout: renderingPipeline.getBindGroupLayout(0),
+        entries: [
+          {
+            binding: 0,
+            resource: { buffer: this.camera.buffer },
+          },
+          {
+            binding: 1,
+            resource: this.atlas.createView({ dimension: '2d-array' }),
+          },
+          {
+            binding: 2,
+            resource: device.createSampler(),
+          },
+        ],
+      }),
+      descriptor: {
+        colorAttachments: [
+          {
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store',
+          },
+          {
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            loadOp: 'clear',
+            storeOp: 'store',
+          },
+          {
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            loadOp: 'clear',
+            storeOp: 'store',
+          }
+        ],
+        depthStencilAttachment: {
+          depthClearValue: 1,
+          depthLoadOp: 'clear',
+          depthStoreOp: 'store',
         },
-        {
-          binding: 1,
-          resource: this.atlas.createView({ dimension: '2d-array' }),
-        },
-        {
-          binding: 2,
-          resource: device.createSampler(),
-        },
-      ],
-    });
+      },
+      geometry: Face(device),
+      pipeline: renderingPipeline,
+    };
+    this.postprocessing = new Postprocessing({ device, format: this.colorFormat });
   }
 
   render(command, volume) {
-    const { bindings, context, descriptor, face, pipeline } = this;
-    descriptor.colorAttachments[0].resolveTarget = context.getCurrentTexture().createView();
+    const {
+      context,
+      postprocessing,
+      rendering: { bindings, descriptor, geometry, pipeline },
+    } = this;
     const pass = command.beginRenderPass(descriptor);
     pass.setPipeline(pipeline);
     pass.setBindGroup(0, bindings);
-    pass.setVertexBuffer(0, face);
+    pass.setVertexBuffer(0, geometry);
     volume.chunks.forEach(({ faces }) => {
       pass.setVertexBuffer(1, faces, 16);
       pass.drawIndirect(faces, 0);
     });
     pass.end();
+    postprocessing.render(command, context.getCurrentTexture().createView());
   }
 
   setClearColor(r, g, b) {
-    const { descriptor: { colorAttachments: [{ clearValue }] } } = this;
+    const { rendering: { descriptor: { colorAttachments: [{ clearValue }] } } } = this;
     clearValue.r = r;
     clearValue.g = g;
     clearValue.b = b;
@@ -245,10 +290,9 @@ class Renderer {
       camera,
       canvas,
       colorFormat,
-      colorTexture,
       device,
-      descriptor,
-      depthTexture,
+      postprocessing,
+      rendering,
       samples,
     } = this;
     const pixelRatio = window.devicePixelRatio || 1;
@@ -259,26 +303,31 @@ class Renderer {
     canvas.style.height = `${height}px`;
     camera.aspect = width / height;
     camera.updateProjection();
-    if (colorTexture) {
-      colorTexture.destroy();
-    }
-    this.colorTexture = device.createTexture({
-      size,
-      sampleCount: samples,
-      format: colorFormat,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+
+    const updateTexture = (object, key, sampleCount, format) => {
+      if (object[key]) {
+        object[key].destroy();
+      }
+      object[key] = device.createTexture({
+        size,
+        sampleCount,
+        format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      return object[key].createView();
+    };
+    rendering.descriptor.colorAttachments[0].view = updateTexture(rendering, 'colorTexture', samples, colorFormat);
+    rendering.descriptor.colorAttachments[0].resolveTarget = updateTexture(rendering, 'colorTarget', 1, colorFormat);
+    rendering.descriptor.colorAttachments[1].view = updateTexture(rendering, 'normalTexture', samples, 'rgba16float');
+    rendering.descriptor.colorAttachments[1].resolveTarget = updateTexture(rendering, 'normalTarget', 1, 'rgba16float');
+    rendering.descriptor.colorAttachments[2].view = updateTexture(rendering, 'positionTexture', samples, 'rgba16float');
+    rendering.descriptor.colorAttachments[2].resolveTarget = updateTexture(rendering, 'positionTarget', 1, 'rgba16float');
+    rendering.descriptor.depthStencilAttachment.view = updateTexture(rendering, 'depthTexture', samples, 'depth24plus');
+    postprocessing.bindTextures({
+      color: rendering.colorTarget.createView(),
+      normal: rendering.normalTarget.createView(),
+      position: rendering.positionTarget.createView(),
     });
-    descriptor.colorAttachments[0].view = this.colorTexture.createView();
-    if (depthTexture) {
-      depthTexture.destroy();
-    }
-    this.depthTexture = device.createTexture({
-      size,
-      sampleCount: samples,
-      format: 'depth24plus',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    descriptor.depthStencilAttachment.view = this.depthTexture.createView();
   }
 }
 
