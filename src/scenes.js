@@ -8,33 +8,24 @@ const Geometry = (model, volume, scene) => {
     .read(`/models/${model}.glb`)
     .then((document) => {
       const geometry = document.getRoot().listMeshes()[0].listPrimitives()[0];
+      const firstAttribute = geometry.listAttributes()[0];
       const indices = new Uint32Array(geometry.getIndices().getArray());
-      const position = geometry.listAttributes()[0];
-      const min = position.getMin(new Float32Array(3));
-      const max = position.getMax(new Float32Array(3));
+      const vertices = new Float32Array(firstAttribute.getArray());
+      const min = firstAttribute.getMin(new Float32Array(3));
+      const max = firstAttribute.getMax(new Float32Array(3));
       const size = vec3.sub(vec3.create(), max, min);
       const scale = (
         (Math.min(volume.width, volume.height, volume.depth) * 0.5)
         / Math.max(size[0] * 0.5, size[1] * 0.5, size[2] * 0.5)
       );
-      const offset = vec3.scale(vec3.create(), size, 0.5);
-      vec3.add(offset, offset, min);
-      const origin = vec3.fromValues(
-        volume.width * 0.5, volume.height * 0.5, volume.depth * 0.5
-      );
-      const vertices = new Float32Array(position.getArray());
-      for (let i = 0, l = vertices.length; i < l; i += 3) {
-        const vertex = vertices.subarray(i, i + 3);
-        vec3.sub(vertex, vertex, offset);
-        vec3.scale(vertex, vertex, scale);
-        vec3.add(vertex, vertex, origin);
-      }
       scene.geometry = {
         indices,
         vertices,
+        position: vec3.fromValues(volume.width * 0.5, volume.height * 0.5, volume.depth * 0.5),
+        scale: vec3.fromValues(scale, scale, scale),
         source: `
         fn getValueAt(pos : vec3<f32>) -> f32 {
-          return 1 + (pos.y / 300) * 254;
+          return 1 + (pos.y / ${volume.height}) * 254;
         }
         `,
       };

@@ -1,14 +1,14 @@
+import { mat4 } from 'gl-matrix';
 import Voxel from '../../lib/voxel.js';
 
 const Compute = ({ chunkSize, source, triangles }) => `
 @group(0) @binding(0) var<uniform> chunk : vec3<i32>;
-@group(0) @binding(1) var<storage, read> indices : array<array<u32, 3>>;
-@group(0) @binding(2) var<storage, read> vertices : array<array<f32, 3>>;
-@group(0) @binding(3) var<storage, read_write> voxels : array<f32>;
+@group(0) @binding(1) var<uniform> transform : mat4x4<f32>;
+@group(0) @binding(2) var<storage, read> indices : array<array<u32, 3>>;
+@group(0) @binding(3) var<storage, read> vertices : array<array<f32, 3>>;
+@group(0) @binding(4) var<storage, read_write> voxels : array<f32>;
 
 ${Voxel({ chunkSize })}
-
-const triangles : u32 = ${triangles};
 
 struct AxisTest {
   ann : vec3<f32>,
@@ -66,6 +66,13 @@ fn intersects(triangle : array<vec3<f32>, 3>, voxel : vec3<f32>) -> bool {
   return s <= r;
 }
 
+fn getVertex(index : u32) -> vec3<f32> {
+  var vertex : vec3<f32> = vec3<f32>(vertices[index][0], vertices[index][1], vertices[index][2]);
+  return (transform * vec4<f32>(vertex, 1)).xyz - vec3<f32>(chunk);
+}
+
+const triangles : u32 = ${triangles};
+
 ${source}
 
 @compute @workgroup_size(64)
@@ -75,13 +82,10 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
     return;
   }
 
-  var i0 : u32 = indices[id][0];
-  var i1 : u32 = indices[id][1];
-  var i2 : u32 = indices[id][2];
   var triangle = array<vec3<f32>, 3>(
-    vec3<f32>(vertices[i0][0], vertices[i0][1], vertices[i0][2]) - vec3<f32>(chunk),
-    vec3<f32>(vertices[i1][0], vertices[i1][1], vertices[i1][2]) - vec3<f32>(chunk),
-    vec3<f32>(vertices[i2][0], vertices[i2][1], vertices[i2][2]) - vec3<f32>(chunk)
+    getVertex(indices[id][0]),
+    getVertex(indices[id][1]),
+    getVertex(indices[id][2]),
   );
 
   var tmin : vec3<i32> = vec3<i32>(chunkSize);
@@ -113,6 +117,37 @@ fn getValueAt(pos : vec3<f32>) -> f32 {
 }
 `;
 
+class Transform {
+  constructor({
+    device,
+    position = new Float32Array([0, 0, 0]),
+    rotation = new Float32Array([0, 0, 0, 1]),
+    scale = new Float32Array([1, 1, 1]),
+  }) {
+    this.device = device;
+    this.data = mat4.create();
+    this.buffer = device.createBuffer({
+      mappedAtCreation: true,
+      size: this.data.byteLength,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+    mat4.fromRotationTranslationScale(this.data, rotation, position, scale);
+    new Float32Array(this.buffer.getMappedRange()).set(this.data);
+    this.buffer.unmap();
+  }
+
+  destroy() {
+    const { buffer } = this;
+    buffer.destroy();
+  }
+
+  set(position, rotation, scale) {
+    const { device, buffer, data } = this;
+    mat4.fromRotationTranslationScale(data, rotation, position, scale);
+    device.queue.writeBuffer(buffer, 0, data);
+  }
+}
+
 class GeometryVoxelizer {
   constructor({ geometry, volume }) {
     const triangles = geometry.indices.length / 3;
@@ -128,6 +163,13 @@ class GeometryVoxelizer {
         }),
         entryPoint: 'main',
       },
+    });
+
+    this.transform = new Transform({
+      device: volume.device,
+      position: geometry.position,
+      rotation: geometry.rotation,
+      scale: geometry.scale,
     });
 
     this.indices = volume.device.createBuffer({
@@ -149,7 +191,7 @@ class GeometryVoxelizer {
     this.bindings = volume.chunks.map(({ position, voxels }) => ({
       bindings: volume.device.createBindGroup({
         layout: this.pipeline.getBindGroupLayout(0),
-        entries: [position, this.indices, this.vertices, voxels].map((buffer, binding) => ({
+        entries: [position, this.transform.buffer, this.indices, this.vertices, voxels].map((buffer, binding) => ({
           binding,
           resource: { buffer },
         })),
@@ -174,7 +216,8 @@ class GeometryVoxelizer {
   }
 
   destroy() {
-    const { indices, vertices } = this;
+    const { transform, indices, vertices } = this;
+    transform.destroy();
     indices.destroy();
     vertices.destroy();
   }
