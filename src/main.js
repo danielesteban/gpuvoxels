@@ -38,15 +38,13 @@ const Main = async () => {
   let sceneIndex;
   let simulationClock;
   const input = new Input();
-  const scenes = Scenes(volume);
+  const scenes = Scenes(volume, (scene) => {
+    clearInterval(interval);
+    setScene(scene);
+  });
   const source = document.getElementById('source');
-  const load = (index) => {
-    if (scenes[index].loading) {
-      load((index + 1) % scenes.length);
-      return;
-    }
-    scene = scenes[index];
-    sceneIndex = index;
+  const setScene = (object) => {
+    scene = object;
     simulationClock = -1;
     let text = scene.source || '';
     if (text.includes('fn distanceToScene(pos : vec3<f32>) -> f32')) {
@@ -59,8 +57,16 @@ const Main = async () => {
       scene.onLoad(renderer, volume);
     }
   };
+  const load = (index) => {
+    if (scenes[index].loading) {
+      load((index + 1) % scenes.length);
+      return;
+    }
+    sceneIndex = index;
+    setScene(scenes[index]);
+  };
   load(0);
-  setInterval(() => (
+  let interval = setInterval(() => (
     load((sceneIndex + 1) % scenes.length)
   ), 10000);
 

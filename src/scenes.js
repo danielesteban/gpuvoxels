@@ -1,11 +1,19 @@
 import { WebIO } from '@gltf-transform/core';
 import { vec2, vec3 } from 'gl-matrix';
 
-const Geometry = (model, volume, scene) => {
-  scene.loading = true;
-  scene.maxFPS = 0;
-  new WebIO()
-    .read(`/models/${model}.glb`)
+const loadGeometry = (model, volume) => (
+  new Promise((resolve) => {
+    const io = new WebIO();
+    if (typeof model === 'string') {
+      resolve(io.read(model));
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener('load', () => (
+      resolve(io.readBinary(new Uint8Array(reader.result)))
+    ), false);
+    reader.readAsArrayBuffer(model);
+  })
     .then((document) => {
       const geometry = document.getRoot().listMeshes()[0].listPrimitives()[0];
       const firstAttribute = geometry.listAttributes()[0];
@@ -18,7 +26,7 @@ const Geometry = (model, volume, scene) => {
         Math.min(volume.width, volume.height, volume.depth)
         / Math.max(size[0], size[1], size[2])
       );
-      scene.geometry = {
+      return {
         indices,
         vertices,
         position: vec3.fromValues(volume.width * 0.5, volume.height * 0.5, volume.depth * 0.5),
@@ -29,6 +37,14 @@ const Geometry = (model, volume, scene) => {
         }
         `,
       };
+    })
+);
+
+const GeometryScene = (model, volume, scene) => {
+  scene.loading = true;
+  loadGeometry(`/models/${model}.glb`, volume)
+    .then((geometry) => {
+      scene.geometry = geometry;
       delete scene.loading;
     });
   return scene;
@@ -160,10 +176,29 @@ const SceneD = {
   `,
 };
 
-export default (volume) => {
-  const Suzanne = Geometry('suzanne', volume, {
+export default (volume, onDrop) => {
+  window.addEventListener('dragenter', (e) => e.preventDefault(), false);
+  window.addEventListener('dragover', (e) => e.preventDefault(), false);
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const [file] = e.dataTransfer.files;
+    if (!file) {
+      return;
+    }
+    loadGeometry(file, volume)
+      .then((geometry) => onDrop({
+        onAnimation: Orbit,
+        onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
+        geometry,
+        maxFPS: 0,
+      }));
+  }, false);
+
+  const Suzanne = GeometryScene('suzanne', volume, {
     onAnimation: Orbit,
     onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
+    maxFPS: 0,
   });
+
   return [SceneA, SceneB, Suzanne, SceneC, SceneD];
 };
