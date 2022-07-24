@@ -11,8 +11,8 @@ const Geometry = (model, volume, scene) => {
       const firstAttribute = geometry.listAttributes()[0];
       const indices = new Uint32Array(geometry.getIndices().getArray());
       const vertices = new Float32Array(firstAttribute.getArray());
-      const min = firstAttribute.getMin(new Float32Array(3));
-      const max = firstAttribute.getMax(new Float32Array(3));
+      const min = firstAttribute.getMin(vec3.create());
+      const max = firstAttribute.getMax(vec3.create());
       const size = vec3.sub(vec3.create(), max, min);
       const scale = (
         (Math.min(volume.width, volume.height, volume.depth) * 0.5)
