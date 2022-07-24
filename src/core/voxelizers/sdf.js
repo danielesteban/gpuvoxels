@@ -1,9 +1,9 @@
-import Noise from '../lib/noise.wgsl';
-import Rotation from '../lib/rotation.wgsl';
-import SDF from '../lib/sdf.wgsl';
-import Voxel from '../lib/voxel.js';
+import Noise from '../../lib/noise.wgsl';
+import Rotation from '../../lib/rotation.wgsl';
+import SDF from '../../lib/sdf.wgsl';
+import Voxel from '../../lib/voxel.js';
 
-const Compute = ({ chunkSize, width, height, depth, scene }) => `
+const Compute = ({ chunkSize, width, height, depth, source }) => `
 @group(0) @binding(0) var<uniform> time : f32;
 @group(0) @binding(1) var<uniform> chunk : vec3<i32>;
 @group(0) @binding(2) var<storage, read_write> voxels : array<f32>;
@@ -23,7 +23,7 @@ const volume : Volume = Volume(
   vec3<f32>(${width}, ${height}, ${depth})
 );
 
-${scene}
+${source}
 
 @compute @workgroup_size(4, 4, 4)
 fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
@@ -37,8 +37,8 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
 }
 `;
 
-class Voxelizer {
-  constructor({ scene, volume }) {
+class SDFVoxelizer {
+  constructor({ source, volume }) {
     this.pipeline = volume.device.createComputePipeline({
       layout: 'auto',
       compute: {
@@ -48,7 +48,7 @@ class Voxelizer {
             width: volume.width,
             height: volume.height,
             depth: volume.depth,
-            scene,
+            source,
           }),
         }),
         entryPoint: 'main',
@@ -78,4 +78,4 @@ class Voxelizer {
   }
 }
 
-export default Voxelizer;
+export default SDFVoxelizer;

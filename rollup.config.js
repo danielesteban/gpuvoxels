@@ -49,7 +49,10 @@ export default {
       ),
     }),
     copy({
-      targets: [{ src: 'screenshot.png', dest: 'dist' }],
+      targets: [
+        { src: 'src/models', dest: 'dist' },
+        { src: 'screenshot.png', dest: 'dist' }
+      ],
     }),
     {
       name: 'wgsl',

@@ -1,5 +1,6 @@
 import Mesher from './mesher.js';
-import Voxelizer from './voxelizer.js';
+import GeometryVoxelizer from './voxelizers/geometry.js';
+import SDFVoxelizer from './voxelizers/sdf.js';
 
 class Chunk {
   constructor({ device, chunk, chunkSize }) {
@@ -55,7 +56,7 @@ class Chunk {
   static createVoxelsBuffer({ device, chunkSize }) {
     return device.createBuffer({
       size: chunkSize * chunkSize * chunkSize * Float32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.STORAGE,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
   }
 }
@@ -126,14 +127,25 @@ class Volume {
   }
 
   destroy() {
-    const { chunks, edge, time } = this;
+    const { chunks, edge, time, voxelizer } = this;
     chunks.forEach((chunk) => chunk.destroy());
     edge.destroy();
     time.destroy();
+    if (voxelizer && voxelizer.destroy) {
+      voxelizer.destroy();
+    }
   }
 
   setScene(scene) {
-    this.voxelizer = new Voxelizer({ scene, volume: this });
+    const { voxelizer } = this;
+    if (voxelizer && voxelizer.destroy) {
+      voxelizer.destroy();
+    }
+    if (scene.geometry) {
+      this.voxelizer = new GeometryVoxelizer({ geometry: scene.geometry, volume: this });
+    } else if (scene.source) {
+      this.voxelizer = new SDFVoxelizer({ source: scene.source, volume: this });
+    }
   }
 }
 

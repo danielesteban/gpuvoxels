@@ -36,25 +36,30 @@ const Main = async () => {
   let scene;
   let sceneIndex;
   let simulationClock;
+  const scenes = Scenes(volume);
   const source = document.getElementById('source');
   const load = (index) => {
-    scene = Scenes[index];
+    if (scenes[index].loading) {
+      load((index + 1) % scenes.length);
+      return;
+    }
+    scene = scenes[index];
     sceneIndex = index;
     simulationClock = -1;
-    let text = scene.source;
+    let text = scene.source || '';
     if (text.includes('fn distanceToScene(pos : vec3<f32>) -> f32')) {
-      text = text.slice(0, text.indexOf('fn getValueAt(pos : vec3<f32>) -> u32'));
+      text = text.slice(0, text.indexOf('fn getValueAt(pos : vec3<f32>) -> f32'));
     }
     source.innerText = text;
     renderer.atlas.compute(scene.atlas);
-    volume.setScene(scene.source);
+    volume.setScene(scene);
     if (scene.onLoad) {
       scene.onLoad(renderer, volume);
     }
   };
   load(0);
   setInterval(() => (
-    load((sceneIndex + 1) % Scenes.length)
+    load((sceneIndex + 1) % scenes.length)
   ), 10000);
 
   const animate = () => {

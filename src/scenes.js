@@ -1,9 +1,52 @@
+import { WebIO } from '@gltf-transform/core';
 import { vec3 } from 'gl-matrix';
+
+const Geometry = (model, volume, scene) => {
+  scene.loading = true;
+  scene.maxFPS = 0;
+  new WebIO()
+    .read(`/models/${model}.glb`)
+    .then((document) => {
+      const geometry = document.getRoot().listMeshes()[0].listPrimitives()[0];
+      const indices = new Uint32Array(geometry.getIndices().getArray());
+      const position = geometry.listAttributes()[0];
+      const min = position.getMin(new Float32Array(3));
+      const max = position.getMax(new Float32Array(3));
+      const size = vec3.sub(vec3.create(), max, min);
+      const scale = (
+        (Math.min(volume.width, volume.height, volume.depth) * 0.5)
+        / Math.max(size[0] * 0.5, size[1] * 0.5, size[2] * 0.5)
+      );
+      const offset = vec3.scale(vec3.create(), size, 0.5);
+      vec3.add(offset, offset, min);
+      const origin = vec3.fromValues(
+        volume.width * 0.5, volume.height * 0.5, volume.depth * 0.5
+      );
+      const vertices = new Float32Array(position.getArray());
+      for (let i = 0, l = vertices.length; i < l; i += 3) {
+        const vertex = vertices.subarray(i, i + 3);
+        vec3.sub(vertex, vertex, offset);
+        vec3.scale(vertex, vertex, scale);
+        vec3.add(vertex, vertex, origin);
+      }
+      scene.geometry = {
+        indices,
+        vertices,
+        source: `
+        fn getValueAt(pos : vec3<f32>) -> f32 {
+          return 1 + (pos.y / 300) * 254;
+        }
+        `,
+      };
+      delete scene.loading;
+    });
+  return scene;
+};
 
 const _offset = vec3.fromValues(0, 0, 0);
 const Orbit = (delta, time, renderer, volume) => {
   const angle = time * 0.25;
-  const distance = volume.width * 0.7;
+  const distance = volume.width * 0.75;
   vec3.add(
     renderer.camera.position,
     renderer.camera.target,
@@ -21,19 +64,19 @@ const SceneA = {
   source: `
   fn distanceToScene(pos : vec3<f32>) -> f32 {
     var origin : vec3<f32> = pos - volume.center;
-    var size : f32 = volume.size.x * 0.3;
-    var t : f32 = sin(time);
+    var t : f32 = sin(time * 2);
+    var size : f32 = volume.size.x * (0.25 + t * 0.01);
     return opSmoothUnion(
-      sdSphere(origin - vec3<f32>(size * (0.6 * t * -1), 0, 0), size),
-      sdSphere(origin - vec3<f32>(size * (0.6 * t), 0, 0), size),
-      6
+      sdSphere(origin - vec3<f32>(size * (0.6 * t * -1), size * 0.2 * t * -1, 0), size),
+      sdSphere(origin - vec3<f32>(size * (0.6 * t), size * 0.2 * t, 0), size),
+      100
     );
   }
   fn getValueAt(pos : vec3<f32>) -> f32 {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + abs(simplexNoise3(pos * 0.01)) * 254.0;
+    return 1 + abs(simplexNoise3(pos * 0.01)) * 254;
   }
   `,
 };
@@ -60,7 +103,7 @@ const SceneB = {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + abs(simplexNoise3(pos * 0.01)) * 254.0;
+    return 1 + abs(simplexNoise3(pos * 0.01)) * 254;
   }
   `,
 };
@@ -70,12 +113,12 @@ const SceneC = {
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.2, 0.4),
   source: `
   fn getValueAt(pos : vec3<f32>) -> f32 {
-    var p : vec3<f32> = pos + vec3<f32>(0, 0, time * 100);
+    var p : vec3<f32> = pos + vec3<f32>(0, 0, round(time * 100));
     var h : f32 = abs(simplexNoise3(p * 0.01)) * volume.size.y;
     if (pos.y > h) {
       return 0;
     }
-    return 1 + abs(simplexNoise3(p * -0.001)) * 254.0;
+    return 1 + abs(simplexNoise3(p * -0.001)) * 254;
   }
   `,
 };
@@ -111,9 +154,15 @@ const SceneD = {
     if (distanceToScene(pos) > 0.01) {
       return 0;
     }
-    return 1 + abs(simplexNoise3(floor(pos / 32))) * 254.0;
+    return 1 + abs(simplexNoise3(floor(pos / 32))) * 254;
   }
   `,
 };
 
-export default [SceneA, SceneB, SceneC, SceneD];
+export default (volume) => {
+  const Suzanne = Geometry('suzanne', volume, {
+    onAnimation: Orbit,
+    onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
+  });
+  return [SceneA, SceneB, Suzanne, SceneC, SceneD];
+};
