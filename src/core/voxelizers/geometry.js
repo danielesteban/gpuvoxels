@@ -91,7 +91,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
   var tmin : vec3<i32> = vec3<i32>(chunkSize);
   var tmax : vec3<i32> = vec3<i32>(0);
   for (var i : i32 = 0; i < 3; i++) {
-    var p = vec3<i32>(floor(triangle[i]));
+    var p = vec3<i32>(triangle[i]);
     tmin = min(tmin, p);
     tmax = max(tmax, p);
   }
