@@ -53,13 +53,18 @@ const GeometryScene = (model, volume, scene) => {
 const _epsilon = 0.000001;
 const _offset = vec3.fromValues(0, 0, 0);
 const _state = vec2.fromValues(Math.PI * 0.5, 0);
+const _target = vec2.fromValues(Math.PI * 0.5, 0);
+const damp = (x, y, lambda, dt) => (
+  vec2.lerp(x, x, y, 1 - Math.exp(-lambda * dt))
+);
 const Orbit = (delta, time, input, renderer, volume) => {
   if (input.pointer.isDown) {
-    _state[1] += input.look[0];
-    _state[0] = Math.max(_epsilon, Math.min(Math.PI - _epsilon, _state[0] + input.look[1]));
+    _target[1] += input.look[0];
+    _target[0] = Math.max(_epsilon, Math.min(Math.PI - _epsilon, _target[0] + input.look[1]));
   } else {
-    _state[1] += delta * 0.2;
+    _target[1] += delta * 0.2;
   }
+  damp(_state, _target, 10, delta);
   const radius = volume.width * 0.75;
   const sinPhiRadius = Math.sin(_state[0]) * radius;
   vec3.add(
