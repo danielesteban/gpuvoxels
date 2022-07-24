@@ -15,8 +15,8 @@ const Geometry = (model, volume, scene) => {
       const max = firstAttribute.getMax(vec3.create());
       const size = vec3.sub(vec3.create(), max, min);
       const scale = (
-        (Math.min(volume.width, volume.height, volume.depth) * 0.5)
-        / Math.max(size[0] * 0.5, size[1] * 0.5, size[2] * 0.5)
+        Math.min(volume.width, volume.height, volume.depth)
+        / Math.max(size[0], size[1], size[2])
       );
       scene.geometry = {
         indices,
