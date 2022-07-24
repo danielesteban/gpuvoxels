@@ -1,5 +1,5 @@
 import { WebIO } from '@gltf-transform/core';
-import { vec3 } from 'gl-matrix';
+import { vec2, vec3 } from 'gl-matrix';
 
 const Geometry = (model, volume, scene) => {
   scene.loading = true;
@@ -34,16 +34,26 @@ const Geometry = (model, volume, scene) => {
   return scene;
 };
 
+const _epsilon = 0.000001;
 const _offset = vec3.fromValues(0, 0, 0);
-const Orbit = (delta, time, renderer, volume) => {
-  const angle = time * 0.25;
-  const distance = volume.width * 0.75;
+const _state = vec2.fromValues(Math.PI * 0.5, 0);
+const Orbit = (delta, time, input, renderer, volume) => {
+  if (input.pointer.isDown) {
+    _state[1] += input.look[0];
+    _state[0] = Math.max(_epsilon, Math.min(Math.PI - _epsilon, _state[0] + input.look[1]));
+  } else {
+    _state[1] += delta * 0.2;
+  }
+  const radius = volume.width * 0.75;
+  const sinPhiRadius = Math.sin(_state[0]) * radius;
   vec3.add(
     renderer.camera.position,
     renderer.camera.target,
     vec3.set(
       _offset,
-      Math.sin(angle) * distance, 0, Math.cos(angle) * distance
+      sinPhiRadius * Math.sin(_state[1]),
+      Math.cos(_state[0]) * radius,
+      sinPhiRadius * Math.cos(_state[1])
     )
   );
   renderer.camera.updateView();

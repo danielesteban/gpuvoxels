@@ -1,5 +1,6 @@
 import './main.css';
 import { vec3 } from 'gl-matrix';
+import Input from './core/input.js';
 import Renderer from './core/renderer.js';
 import Scenes from './scenes.js';
 import Volume from './core/volume.js';
@@ -36,6 +37,7 @@ const Main = async () => {
   let scene;
   let sceneIndex;
   let simulationClock;
+  const input = new Input();
   const scenes = Scenes(volume);
   const source = document.getElementById('source');
   const load = (index) => {
@@ -67,8 +69,9 @@ const Main = async () => {
     const time = performance.now() / 1000;
     const delta = time - clock;
     clock = time;
+    input.update();
     if (scene.onAnimation) {
-      scene.onAnimation(delta, time, renderer, volume);
+      scene.onAnimation(delta, time, input, renderer, volume);
     }
 
     const command = device.createCommandEncoder();
