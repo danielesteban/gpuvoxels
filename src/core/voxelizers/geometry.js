@@ -67,8 +67,8 @@ fn intersects(triangle : array<vec3<f32>, 3>, voxel : vec3<f32>) -> bool {
 }
 
 fn getVertex(index : u32) -> vec3<f32> {
-  var vertex : vec3<f32> = vec3<f32>(vertices[index][0], vertices[index][1], vertices[index][2]);
-  return (transform * vec4<f32>(vertex, 1)).xyz - vec3<f32>(chunk);
+  var vertex : vec4<f32> = vec4<f32>(vertices[index][0], vertices[index][1], vertices[index][2], 1);
+  return (transform * vertex).xyz - vec3<f32>(chunk);
 }
 
 const triangles : u32 = ${triangles};
