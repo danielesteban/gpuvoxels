@@ -1,5 +1,5 @@
 import { WebIO } from '@gltf-transform/core';
-import { vec2, vec3 } from 'gl-matrix';
+import { vec3 } from 'gl-matrix';
 
 const loadGeometry = (model, volume) => (
   new Promise((resolve) => {
