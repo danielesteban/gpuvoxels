@@ -3,21 +3,16 @@
   "author": "Daniel Esteban Nombela",
   "license": "MIT",
   "scripts": {
-    "build": "rollup -c rollup.config.js",
-    "start": "npm run build -- -w"
-  },
-  "dependencies": {
-    "@gltf-transform/core": "^2.2.2",
-    "gl-matrix": "^3.4.3"
+    "start": "run-p watch:module serve:example",
+    "postinstall": "cd example && npm install",
+    "build:module": "rollup -c rollup.config.js",
+    "watch:module": "npm run build:module -- -w",
+    "serve:example": "cd example && npm start"
   },
   "devDependencies": {
-    "@rollup/plugin-html": "^0.2.4",
-    "@rollup/plugin-node-resolve": "^13.3.0",
+    "npm-run-all": "^4.1.5",
     "rollup": "^2.77.0",
     "rollup-plugin-copy": "^3.4.0",
-    "rollup-plugin-livereload": "^2.0.5",
-    "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-serve": "^2.0.0",
     "rollup-plugin-terser": "^7.0.2"
   }
 }

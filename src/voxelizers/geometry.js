@@ -1,5 +1,5 @@
 import { mat4 } from 'gl-matrix';
-import Voxel from '../../lib/voxel.js';
+import Voxel from '../lib/voxel.js';
 
 const Compute = ({ chunkSize, source, triangles }) => `
 @group(0) @binding(0) var<uniform> chunk : vec3<i32>;

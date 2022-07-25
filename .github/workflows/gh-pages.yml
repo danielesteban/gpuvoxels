@@ -11,11 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Dependencies
-        run: npm ci
+        run: cd example && npm ci
       - name: Build
-        run: NODE_ENV=production npm run build
+        run: cd example && NODE_ENV=production npm run build
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: 'dist'
+          publish_dir: 'example/dist'

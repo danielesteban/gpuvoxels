@@ -1,7 +1,7 @@
-import Noise from '../../lib/noise.wgsl';
-import Rotation from '../../lib/rotation.wgsl';
-import SDF from '../../lib/sdf.wgsl';
-import Voxel from '../../lib/voxel.js';
+import Noise from '../lib/noise.wgsl';
+import Rotation from '../lib/rotation.wgsl';
+import SDF from '../lib/sdf.wgsl';
+import Voxel from '../lib/voxel.js';
 
 const Compute = ({ chunkSize, width, height, depth, source }) => `
 @group(0) @binding(0) var<uniform> time : f32;

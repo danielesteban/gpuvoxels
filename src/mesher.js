@@ -1,4 +1,4 @@
-import Voxel from '../lib/voxel.js';
+import Voxel from './lib/voxel.js';
 
 const Compute = ({ chunkSize }) => `
 struct Faces {

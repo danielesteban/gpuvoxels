@@ -1,58 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 import copy from 'rollup-plugin-copy';
-import html from '@rollup/plugin-html';
-import livereload from 'rollup-plugin-livereload';
-import postcss from 'rollup-plugin-postcss';
-import resolve from '@rollup/plugin-node-resolve';
-import serve from 'rollup-plugin-serve';
 import { terser } from 'rollup-plugin-terser';
 
 const outputPath = path.resolve(__dirname, 'dist');
 const production = !process.env.ROLLUP_WATCH;
-const token = production ? (
-  'AljrTfjI6xTQFZyLVzrrbufea9X2fRcjPvP+pt35W1ikXOT31ZYzgt75daWfCCRnrHPcw4/db8yLbhBKWoDblwIAAABVeyJvcmlnaW4iOiJodHRwczovL2dwdXZveGVscy5nYXR1bmVzLmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjYzNzE4Mzk5fQ=='
-) : (
-  'AvyDIV+RJoYs8fn3W6kIrBhWw0te0klraoz04mw/nPb8VTus3w5HCdy+vXqsSzomIH745CT6B5j1naHgWqt/tw8AAABJeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjYzNzE4Mzk5fQ=='
-);
 
 export default {
-  input: path.join(__dirname, 'src', 'main.js'),
+  input: path.join(__dirname, 'src', 'module.js'),
+  external: ['gl-matrix'],
   output: {
-    dir: outputPath,
-    format: 'iife',
+    file: path.join(outputPath, 'module.js'),
+    format: 'esm',
   },
   plugins: [
-    resolve({
-      browser: true,
-    }),
-    postcss({
-      extract: 'main.css',
-      minimize: production,
-    }),
-    html({
-      template: ({ files }) => (
-        fs.readFileSync(path.join(__dirname, 'src', 'index.html'), 'utf8')
-          .replace('__TOKEN__', token)
-          .replace(
-            '<link rel="stylesheet">',
-            (files.css || [])
-              .map(({ fileName }) => `<link rel="stylesheet" href="/${fileName}">`)
-              .join('\n')
-          )
-          .replace(
-            '<script></script>',
-            (files.js || [])
-              .map(({ fileName }) => `<script defer src="/${fileName}"></script>`)
-              .join('\n')
-          )
-      ),
-    }),
     copy({
       targets: [
-        { src: 'src/models', dest: 'dist' },
-        { src: 'screenshot.png', dest: 'dist' }
+        { src: 'LICENSE', dest: 'dist' },
+        { src: 'README.md', dest: 'dist' },
       ],
+      copyOnce: !production,
     }),
     {
       name: 'wgsl',
@@ -65,20 +32,27 @@ export default {
         }
       }
     },
-    ...(production ? [
-      terser({ format: { comments: false } }),
-      {
-        writeBundle() {
-          fs.writeFileSync(path.join(outputPath, 'CNAME'), 'gpuvoxels.gatunes.com');
-        },
+    {
+      name: 'package',
+      writeBundle() {
+        fs.writeFileSync(path.join(outputPath, 'package.json'), JSON.stringify({
+          name: 'gpuvoxels',
+          author: 'Daniel Esteban Nombela',
+          license: 'MIT',
+          main: 'module.js',
+          type: 'module',
+          version: '0.0.1',
+          repository: {
+            type: 'git',
+            url: 'https://github.com/danielesteban/gpuvoxels',
+          },
+          peerDependencies: {
+            'gl-matrix': '>=3.4.3',
+          },
+        }, null, '  '));
       },
-    ] : [
-      serve({
-        contentBase: outputPath,
-        port: 8080,
-      }),
-      livereload(outputPath),
-    ]),
+    },
+    ...(production ? [terser()] : []),
   ],
   watch: { clearScreen: false },
 };

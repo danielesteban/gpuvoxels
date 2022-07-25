@@ -1,9 +1,8 @@
 import './main.css';
+import { Renderer, Volume } from 'gpuvoxels';
 import { vec3 } from 'gl-matrix';
-import Input from './core/input.js';
-import Renderer from './core/renderer.js';
+import Input from './input.js';
 import Scenes from './scenes.js';
-import Volume from './core/volume.js';
 
 const Main = async () => {
   if (!navigator.gpu || !navigator.gpu.getPreferredCanvasFormat) {

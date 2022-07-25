@@ -1,6 +1,6 @@
 import Atlas from './atlas.js';
 import Camera from './camera.js';
-import Rotation from '../lib/rotation.wgsl';
+import Rotation from './lib/rotation.wgsl';
 import Postprocessing from './postprocessing.js';
 
 const Vertex = `

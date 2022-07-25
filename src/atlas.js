@@ -1,4 +1,4 @@
-import Noise from '../lib/noise.wgsl';
+import Noise from './lib/noise.wgsl';
 
 const Compute = ({ count, width, height, generator }) => `
 @group(0) @binding(0) var texture : texture_storage_2d_array<rgba8unorm, write>;
