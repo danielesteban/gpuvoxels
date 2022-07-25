@@ -50,38 +50,7 @@ const GeometryScene = (model, volume, scene) => {
   return scene;
 };
 
-const _epsilon = 0.000001;
-const _offset = vec3.fromValues(0, 0, 0);
-const _state = vec2.fromValues(Math.PI * 0.5, 0);
-const _target = vec2.fromValues(Math.PI * 0.5, 0);
-const damp = (x, y, lambda, dt) => (
-  vec2.lerp(x, x, y, 1 - Math.exp(-lambda * dt))
-);
-const Orbit = (delta, time, input, renderer, volume) => {
-  if (input.pointer.isDown) {
-    _target[1] += input.look[0];
-    _target[0] = Math.max(_epsilon, Math.min(Math.PI - _epsilon, _target[0] + input.look[1]));
-  } else {
-    _target[1] += delta * 0.2;
-  }
-  damp(_state, _target, 10, delta);
-  const radius = volume.width * 0.75;
-  const sinPhiRadius = Math.sin(_state[0]) * radius;
-  vec3.add(
-    renderer.camera.position,
-    renderer.camera.target,
-    vec3.set(
-      _offset,
-      sinPhiRadius * Math.sin(_state[1]),
-      Math.cos(_state[0]) * radius,
-      sinPhiRadius * Math.cos(_state[1])
-    )
-  );
-  renderer.camera.updateView();
-};
-
 const SceneA = {
-  onAnimation: Orbit,
   onLoad: (renderer) => renderer.setClearColor(0.7, 0.6, 0.2),
   source: `
   fn distanceToScene(pos : vec3<f32>) -> f32 {
@@ -104,7 +73,6 @@ const SceneA = {
 };
 
 const SceneB = {
-  onAnimation: Orbit,
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.3, 0.6),
   source: `
   fn distanceToScene(pos : vec3<f32>) -> f32 {
@@ -131,7 +99,6 @@ const SceneB = {
 };
 
 const SceneC = {
-  onAnimation: Orbit,
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.2, 0.4),
   source: `
   fn getValueAt(pos : vec3<f32>) -> f32 {
@@ -146,7 +113,6 @@ const SceneC = {
 };
 
 const SceneD = {
-  onAnimation: Orbit,
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
   source: `
   fn distanceToScene(pos : vec3<f32>) -> f32 {
@@ -192,7 +158,6 @@ export default (volume, onDrop) => {
     }
     loadGeometry(file, volume)
       .then((geometry) => onDrop({
-        onAnimation: Orbit,
         onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
         geometry,
         maxFPS: 0,
@@ -200,7 +165,6 @@ export default (volume, onDrop) => {
   }, false);
 
   const Suzanne = GeometryScene('suzanne', volume, {
-    onAnimation: Orbit,
     onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
     maxFPS: 0,
   });

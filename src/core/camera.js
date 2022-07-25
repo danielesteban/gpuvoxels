@@ -1,7 +1,8 @@
 import { glMatrix, mat3, mat4, vec3 } from 'gl-matrix';
 
-const _up = vec3.fromValues(0, 1, 0);
 const _matrix = mat4.create();
+const _offset = vec3.create();
+const _up = vec3.fromValues(0, 1, 0);
 
 class Camera {
   constructor({ device, aspect = 1, fov = 75, near = 0.1, far = 1000 }) {
@@ -22,6 +23,22 @@ class Camera {
     this.viewBuffer = new Float32Array(25);
     this.viewMatrix = this.viewBuffer.subarray(0, 16);
     this.normalMatrix = this.viewBuffer.subarray(16, 25);
+  }
+
+  setOrbit(phi, theta, radius) {
+    const { position, target } = this;
+    const sinPhiRadius = Math.sin(phi) * radius;
+    vec3.add(
+      position,
+      target,
+      vec3.set(
+        _offset,
+        sinPhiRadius * Math.sin(theta),
+        Math.cos(phi) * radius,
+        sinPhiRadius * Math.cos(theta)
+      )
+    );
+    this.updateView();
   }
 
   updateProjection() {

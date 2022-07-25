@@ -75,9 +75,15 @@ const Main = async () => {
     const time = performance.now() / 1000;
     const delta = time - clock;
     clock = time;
-    input.update();
+    input.update(delta);
     if (scene.onAnimation) {
       scene.onAnimation(delta, time, input, renderer, volume);
+    } else {
+      renderer.camera.setOrbit(
+        input.look.state[0],
+        input.look.state[1],
+        volume.width * input.zoom.state
+      );
     }
 
     const command = device.createCommandEncoder();
