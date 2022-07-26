@@ -151,12 +151,13 @@ class Transform {
 class GeometryVoxelizer {
   constructor({ geometry, volume }) {
     const triangles = geometry.indices.length / 3;
+    this.code = Compute({
+      chunkSize: volume.chunkSize,
+      source: geometry.source || DefaultSource,
+      triangles,
+    });
     this.shader = volume.device.createShaderModule({
-      code: Compute({
-        chunkSize: volume.chunkSize,
-        source: geometry.source || DefaultSource,
-        triangles,
-      }),
+      code: this.code,
     });
     this.pipeline = volume.device.createComputePipeline({
       layout: 'auto',
