@@ -9,7 +9,7 @@
   "dependencies": {
     "@gltf-transform/core": "^2.2.3",
     "gl-matrix": "^3.4.3",
-    "gpuvoxels": "^0.0.3"
+    "gpuvoxels": "^0.0.4"
   },
   "devDependencies": {
     "@rollup/plugin-alias": "^3.1.9",

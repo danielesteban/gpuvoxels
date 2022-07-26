@@ -100,12 +100,14 @@ class Atlas {
     }
     this.generator = generator;
     const { device, count, width, height, texture } = this;
+    this.code = Compute({ count, width, height, generator });
+    this.shader = device.createShaderModule({
+      code: this.code,
+    });
     const pipeline = device.createComputePipeline({
       layout: 'auto',
       compute: {
-        module: device.createShaderModule({
-          code: Compute({ count, width, height, generator }),
-        }),
+        module: this.shader,
         entryPoint: 'main',
       },
     });
