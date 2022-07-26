@@ -39,18 +39,19 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
 
 class SDFVoxelizer {
   constructor({ source, volume }) {
+    this.shader = volume.device.createShaderModule({
+      code: Compute({
+        chunkSize: volume.chunkSize,
+        width: volume.width,
+        height: volume.height,
+        depth: volume.depth,
+        source,
+      }),
+    });
     this.pipeline = volume.device.createComputePipeline({
       layout: 'auto',
       compute: {
-        module: volume.device.createShaderModule({
-          code: Compute({
-            chunkSize: volume.chunkSize,
-            width: volume.width,
-            height: volume.height,
-            depth: volume.depth,
-            source,
-          }),
-        }),
+        module: this.shader,
         entryPoint: 'main',
       },
     });
