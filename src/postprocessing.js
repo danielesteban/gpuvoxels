@@ -6,16 +6,17 @@ fn main(@location(0) position : vec4<f32>) -> @builtin(position) vec4<f32> {
 `;
 
 const Fragment = ({ source }) => `
-@group(0) @binding(0) var<uniform> time : f32;
-@group(0) @binding(1) var colorTexture : texture_2d<f32>;
-@group(0) @binding(2) var normalTexture : texture_2d<f32>;
-@group(0) @binding(3) var positionTexture : texture_2d<f32>;
+@group(0) @binding(0) var<uniform> size : vec2<i32>;
+@group(0) @binding(1) var<uniform> time : f32;
+@group(0) @binding(2) var colorTexture : texture_2d<f32>;
+@group(0) @binding(3) var normalTexture : texture_2d<f32>;
+@group(0) @binding(4) var positionTexture : texture_2d<f32>;
 
 ${source}
 
 @fragment
 fn main(@builtin(position) uv : vec4<f32>) -> @location(0) vec4<f32> {
-  return getColor(vec2<i32>(floor(uv.xy)), time);
+  return getColor(vec2<i32>(floor(uv.xy)), size, time);
 }
 `;
 
@@ -65,7 +66,7 @@ fn edgesNormal(pixel : vec2<i32>) -> f32 {
   return (edge.x + edge.y + edge.z) * effect.normalScale;
 }
 
-fn getColor(pixel : vec2<i32>, time : f32) -> vec4<f32> {
+fn getColor(pixel : vec2<i32>, size : vec2<i32>, time : f32) -> vec4<f32> {
   var color : vec3<f32> = textureLoad(colorTexture, pixel, 0).xyz;
   color = mix(color, effect.color, clamp(max(edgesDepth(pixel), edgesNormal(pixel)), 0, 1) * effect.intensity);
   return vec4<f32>(color, 1);
@@ -90,6 +91,28 @@ const Screen = (device) => {
   return buffer;
 };
 
+class Size {
+  constructor({ device }) {
+    this.device = device;
+    this.data = new Int32Array(2);
+    this.buffer = device.createBuffer({
+      size: this.data.byteLength,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+  }
+
+  destroy() {
+    const { buffer } = this;
+    buffer.destroy();
+  }
+
+  set(value) {
+    const { device, buffer, data } = this;
+    data.set(value);
+    device.queue.writeBuffer(buffer, 0, data);
+  }
+}
+
 class Postprocessing {
   constructor({ device, format, time }) {
     this.device = device;
@@ -103,10 +126,11 @@ class Postprocessing {
       }],
     };
     this.geometry = Screen(device);
+    this.size = new Size({ device });
   }
 
   bindTextures({ color, normal, position }) {
-    const { device, pipeline, time } = this;
+    const { device, pipeline, size, time } = this;
     this.textures = { color, normal, position };
     if (!pipeline) {
       return;
@@ -116,22 +140,32 @@ class Postprocessing {
       entries: [
         {
           binding: 0,
-          resource: { buffer: time.buffer },
+          resource: { buffer: size.buffer },
         },
         {
           binding: 1,
-          resource: color,
+          resource: { buffer: time.buffer },
         },
         {
           binding: 2,
-          resource: normal,
+          resource: color,
         },
         {
           binding: 3,
+          resource: normal,
+        },
+        {
+          binding: 4,
           resource: position,
         },
       ],
     });
+  }
+  
+  destroy() {
+    const { geometry, size } = this;
+    geometry.destroy();
+    size.destroy();
   }
 
   setEffect(source = DefaultEffect) {

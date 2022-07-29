@@ -128,9 +128,9 @@ class Time {
     buffer.destroy();
   }
 
-  set(value) {
+  set(time) {
     const { device, buffer, data } = this;
-    data[0] = value;
+    data[0] = time;
     device.queue.writeBuffer(buffer, 0, data);
   }
 }
@@ -332,6 +332,7 @@ class Renderer {
       normal: rendering.normalTarget.createView(),
       position: rendering.positionTarget.createView(),
     });
+    postprocessing.size.set(size);
   }
 }
 
