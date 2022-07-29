@@ -12,10 +12,11 @@ struct VertexInput {
 
 struct VertexOutput {
   @builtin(position) position : vec4<f32>,
-  @location(0) viewPosition: vec3<f32>,
-  @location(1) normal: vec3<f32>,
-  @location(2) uv: vec2<f32>,
-  @location(3) @interpolate(flat) texture: i32,
+  @location(0) worldPosition : vec3<f32>,
+  @location(1) normal : vec3<f32>,
+  @location(2) uv : vec2<f32>,
+  @location(3) depth : f32,
+  @location(4) @interpolate(flat) texture : i32,
 }
 
 struct Camera {
@@ -56,12 +57,14 @@ fn main(voxel : VertexInput) -> VertexOutput {
       rotation = rotateY(PI);
     }
   }
-  var mvPosition : vec4<f32> = camera.view * vec4<f32>(rotation * voxel.position + voxel.face.xyz, 1);
+  var position : vec4<f32> = vec4<f32>(rotation * voxel.position + voxel.face.xyz, 1);
+  var mvPosition : vec4<f32> = camera.view * position;
   var out : VertexOutput;
   out.position = camera.projection * mvPosition;
-  out.viewPosition = -mvPosition.xyz;
+  out.worldPosition = position.xyz;
   out.normal = normalize(rotation * faceNormal);
   out.uv = voxel.uv;
+  out.depth = -mvPosition.z;
   out.texture = i32(floor(voxel.face.w / 6));
   return out;
 }
@@ -72,7 +75,8 @@ struct FragmentInput {
   @location(0) position : vec3<f32>,
   @location(1) normal : vec3<f32>,
   @location(2) uv : vec2<f32>,
-  @location(3) @interpolate(flat) texture : i32,
+  @location(3) depth : f32,
+  @location(4) @interpolate(flat) texture : i32,
 }
 
 struct FragmentOutput {
@@ -89,7 +93,7 @@ fn main(face : FragmentInput) -> FragmentOutput {
   var output : FragmentOutput;
   output.color = textureSample(atlas, atlasSampler, face.uv, face.texture);
   output.normal = vec4<f32>(normalize(face.normal), 1);
-  output.position = vec4<f32>(face.position, 1);
+  output.position = vec4<f32>(face.position, face.depth);
   return output;
 }
 `;

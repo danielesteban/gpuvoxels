@@ -46,11 +46,11 @@ const effect : Effect = Effect(
 const offset : vec3<i32> = vec3<i32>(1, 1, 0);
 
 fn edgesDepth(pixel : vec2<i32>) -> f32 {
-  var pixelCenter : f32 = textureLoad(positionTexture, pixel, 0).z;
-  var pixelLeft : f32 = textureLoad(positionTexture, pixel - offset.xz, 0).z;
-  var pixelRight : f32 = textureLoad(positionTexture, pixel + offset.xz, 0).z;
-  var pixelUp : f32 = textureLoad(positionTexture, pixel + offset.zy, 0).z;
-  var pixelDown : f32 = textureLoad(positionTexture, pixel - offset.zy, 0).z;
+  var pixelCenter : f32 = textureLoad(positionTexture, pixel, 0).w;
+  var pixelLeft : f32 = textureLoad(positionTexture, pixel - offset.xz, 0).w;
+  var pixelRight : f32 = textureLoad(positionTexture, pixel + offset.xz, 0).w;
+  var pixelUp : f32 = textureLoad(positionTexture, pixel + offset.zy, 0).w;
+  var pixelDown : f32 = textureLoad(positionTexture, pixel - offset.zy, 0).w;
   return (
     abs(pixelLeft    - pixelCenter) 
     + abs(pixelRight - pixelCenter) 
