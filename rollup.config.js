@@ -41,7 +41,7 @@ export default {
           license: 'MIT',
           main: 'module.js',
           type: 'module',
-          version: '0.0.5',
+          version: '0.0.6',
           repository: {
             type: 'git',
             url: 'https://github.com/danielesteban/gpuvoxels',

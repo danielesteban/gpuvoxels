@@ -136,6 +136,10 @@ class Postprocessing {
 
   setEffect(source = DefaultEffect) {
     const { device, format, textures } = this;
+    this.code = Fragment({ source });
+    this.shader = device.createShaderModule({
+      code: Fragment({ source }),
+    });
     this.pipeline = device.createRenderPipeline({
       layout: 'auto',
       vertex: {
@@ -157,9 +161,7 @@ class Postprocessing {
         ],
       },
       fragment: {
-        module: device.createShaderModule({
-          code: Fragment({ source }),
-        }),
+        module: this.shader,
         entryPoint: 'main',
         targets: [{ format }],
       },
