@@ -6,17 +6,25 @@ fn main(@location(0) position : vec4<f32>) -> @builtin(position) vec4<f32> {
 `;
 
 const Fragment = ({ source }) => `
-@group(0) @binding(0) var<uniform> size : vec2<i32>;
-@group(0) @binding(1) var<uniform> time : f32;
-@group(0) @binding(2) var colorTexture : texture_2d<f32>;
-@group(0) @binding(3) var normalTexture : texture_2d<f32>;
-@group(0) @binding(4) var positionTexture : texture_2d<f32>;
+struct Camera {
+  projection : mat4x4<f32>,
+  view : mat4x4<f32>,
+  position : vec3<f32>,
+  direction : vec3<f32>,
+}
+
+@group(0) @binding(0) var<uniform> camera : Camera;
+@group(0) @binding(1) var<uniform> size : vec2<i32>;
+@group(0) @binding(2) var<uniform> time : f32;
+@group(0) @binding(3) var colorTexture : texture_2d<f32>;
+@group(0) @binding(4) var normalTexture : texture_2d<f32>;
+@group(0) @binding(5) var positionTexture : texture_2d<f32>;
 
 ${source}
 
 @fragment
 fn main(@builtin(position) uv : vec4<f32>) -> @location(0) vec4<f32> {
-  return getColor(vec2<i32>(floor(uv.xy)), size, time);
+  return getColor(vec2<i32>(floor(uv.xy)), size, camera, time);
 }
 `;
 
@@ -66,7 +74,7 @@ fn edgesNormal(pixel : vec2<i32>) -> f32 {
   return (edge.x + edge.y + edge.z) * effect.normalScale;
 }
 
-fn getColor(pixel : vec2<i32>, size : vec2<i32>, time : f32) -> vec4<f32> {
+fn getColor(pixel : vec2<i32>, size : vec2<i32>, camera : Camera, time : f32) -> vec4<f32> {
   var color : vec3<f32> = textureLoad(colorTexture, pixel, 0).xyz;
   color = mix(color, effect.color, clamp(max(edgesDepth(pixel), edgesNormal(pixel)), 0, 1) * effect.intensity);
   return vec4<f32>(color, 1);
@@ -114,8 +122,9 @@ class Size {
 }
 
 class Postprocessing {
-  constructor({ device, format, time }) {
+  constructor({ device, camera, format, time }) {
     this.device = device;
+    this.camera = camera;
     this.format = format;
     this.time = time;
     this.descriptor = {
@@ -130,7 +139,7 @@ class Postprocessing {
   }
 
   bindTextures({ color, normal, position }) {
-    const { device, pipeline, size, time } = this;
+    const { device, camera, pipeline, size, time } = this;
     this.textures = { color, normal, position };
     if (!pipeline) {
       return;
@@ -140,22 +149,26 @@ class Postprocessing {
       entries: [
         {
           binding: 0,
-          resource: { buffer: size.buffer },
+          resource: { buffer: camera.buffer },
         },
         {
           binding: 1,
-          resource: { buffer: time.buffer },
+          resource: { buffer: size.buffer },
         },
         {
           binding: 2,
-          resource: color,
+          resource: { buffer: time.buffer },
         },
         {
           binding: 3,
-          resource: normal,
+          resource: color,
         },
         {
           binding: 4,
+          resource: normal,
+        },
+        {
+          binding: 5,
           resource: position,
         },
       ],

@@ -21,7 +21,6 @@ struct VertexOutput {
 struct Camera {
   projection : mat4x4<f32>,
   view : mat4x4<f32>,
-  normal : mat3x3<f32>,
 }
 
 @group(0) @binding(0) var<uniform> camera : Camera;
@@ -61,7 +60,7 @@ fn main(voxel : VertexInput) -> VertexOutput {
   var out : VertexOutput;
   out.position = camera.projection * mvPosition;
   out.viewPosition = -mvPosition.xyz;
-  out.normal = normalize(camera.normal * rotation * faceNormal);
+  out.normal = normalize(rotation * faceNormal);
   out.uv = voxel.uv;
   out.texture = i32(floor(voxel.face.w / 6));
   return out;
@@ -262,7 +261,7 @@ class Renderer {
       geometry: Face(device),
       pipeline: renderingPipeline,
     };
-    this.postprocessing = new Postprocessing({ device, format, time: this.time });
+    this.postprocessing = new Postprocessing({ device, camera: this.camera, format, time: this.time });
   }
 
   render(command, volume) {

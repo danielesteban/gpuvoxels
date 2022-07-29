@@ -1,6 +1,5 @@
-import { glMatrix, mat3, mat4, vec3 } from 'gl-matrix';
+import { glMatrix, mat4, vec3 } from 'gl-matrix';
 
-const _matrix = mat4.create();
 const _offset = vec3.create();
 const _up = vec3.fromValues(0, 1, 0);
 
@@ -8,7 +7,7 @@ class Camera {
   constructor({ device, aspect = 1, fov = 75, near = 0.1, far = 1000 }) {
     this.device = device;
     this.buffer = device.createBuffer({
-      size: (16 + 16 + 9) * Float32Array.BYTES_PER_ELEMENT + 12,
+      size: 39 * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
     });
     this.aspect = aspect;
@@ -16,13 +15,12 @@ class Camera {
     this.near = near;
     this.far = far;
 
-    this.position = vec3.create();
-    this.target = vec3.create();
-
     this.projectionMatrix = mat4.create();
-    this.viewBuffer = new Float32Array(25);
+    this.viewBuffer = new Float32Array(22);
     this.viewMatrix = this.viewBuffer.subarray(0, 16);
-    this.normalMatrix = this.viewBuffer.subarray(16, 25);
+    this.position = this.viewBuffer.subarray(16, 19);
+    this.direction = this.viewBuffer.subarray(19, 22);
+    this.target = vec3.create();
   }
 
   setOrbit(phi, theta, radius) {
@@ -48,9 +46,9 @@ class Camera {
   }
 
   updateView() {
-    const { device, buffer, viewBuffer, viewMatrix, normalMatrix, position, target } = this;
+    const { device, buffer, viewBuffer, direction, position, target, viewMatrix } = this;
     mat4.lookAt(viewMatrix, position, target, _up);
-    mat3.normalFromMat4(normalMatrix, mat4.invert(_matrix, viewMatrix));
+    vec3.normalize(direction, vec3.sub(direction, target, position));
     device.queue.writeBuffer(buffer, 64, viewBuffer);
   }
 }
