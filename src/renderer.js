@@ -113,6 +113,28 @@ const Face = (device) => {
   return buffer;
 };
 
+class Time {
+  constructor({ device }) {
+    this.device = device;
+    this.data = new Float32Array(1);
+    this.buffer = device.createBuffer({
+      size: this.data.byteLength,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+  }
+
+  destroy() {
+    const { buffer } = this;
+    buffer.destroy();
+  }
+
+  set(value) {
+    const { device, buffer, data } = this;
+    data[0] = value;
+    device.queue.writeBuffer(buffer, 0, data);
+  }
+}
+
 class Renderer {
   constructor({
     adapter,
@@ -134,6 +156,7 @@ class Renderer {
     this.context.configure({ alphaMode: 'opaque', device, format });
     this.device = device;
     this.samples = samples;
+    this.time = new Time({ device });
     const renderingPipeline = device.createRenderPipeline({
       layout: 'auto',
       vertex: {
@@ -239,7 +262,7 @@ class Renderer {
       geometry: Face(device),
       pipeline: renderingPipeline,
     };
-    this.postprocessing = new Postprocessing({ device, format });
+    this.postprocessing = new Postprocessing({ device, format, time: this.time });
   }
 
   render(command, volume) {

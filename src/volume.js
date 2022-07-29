@@ -61,38 +61,18 @@ class Chunk {
   }
 }
 
-class Time {
-  constructor({ device }) {
-    this.device = device;
-    this.data = new Float32Array(1);
-    this.buffer = device.createBuffer({
-      size: this.data.byteLength,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-    });
-  }
-
-  destroy() {
-    const { buffer } = this;
-    buffer.destroy();
-  }
-
-  set(value) {
-    const { device, buffer, data } = this;
-    data[0] = value;
-    device.queue.writeBuffer(buffer, 0, data);
-  }
-}
-
 class Volume {
   constructor({
     chunkSize = 100,
     device,
+    time,
     width,
     height,
     depth,
   }) {
     this.chunkSize = chunkSize;
     this.device = device;
+    this.time = time;
     this.width = width;
     this.height = height;
     this.depth = depth;
@@ -116,21 +96,18 @@ class Volume {
     }
     this.edge = Chunk.createVoxelsBuffer({ device, chunkSize });
     this.mesher = new Mesher({ chunks, volume: this });
-    this.time = new Time({ device });
   }
 
-  compute(command, frameTime) {
-    const { mesher, time, voxelizer } = this;
-    time.set(frameTime);
+  compute(command) {
+    const { mesher, voxelizer } = this;
     voxelizer.compute(command);
     mesher.compute(command);
   }
 
   destroy() {
-    const { chunks, edge, time, voxelizer } = this;
+    const { chunks, edge, voxelizer } = this;
     chunks.forEach((chunk) => chunk.destroy());
     edge.destroy();
-    time.destroy();
     if (voxelizer && voxelizer.destroy) {
       voxelizer.destroy();
     }

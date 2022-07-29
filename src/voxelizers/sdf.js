@@ -33,7 +33,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
   ) {
     return;
   }
-  voxels[getVoxel(pos)] = getValueAt(vec3<f32>(chunk + pos));
+  voxels[getVoxel(pos)] = getValueAt(vec3<f32>(chunk + pos), time);
 }
 `;
 

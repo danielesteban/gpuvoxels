@@ -53,7 +53,7 @@ const GeometryScene = (model, volume, scene) => {
 const SceneA = {
   onLoad: (renderer) => renderer.setClearColor(0.7, 0.6, 0.2),
   source: `
-  fn distanceToScene(pos : vec3<f32>) -> f32 {
+  fn distanceToScene(pos : vec3<f32>, time : f32) -> f32 {
     var origin : vec3<f32> = pos - volume.center;
     var t : f32 = sin(time * 2);
     var size : f32 = volume.size.x * (0.25 + t * 0.01);
@@ -63,8 +63,8 @@ const SceneA = {
       100
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> f32 {
-    if (distanceToScene(pos) > 0.01) {
+  fn getValueAt(pos : vec3<f32>, time : f32) -> f32 {
+    if (distanceToScene(pos, time) > 0.01) {
       return 0;
     }
     return 1 + abs(simplexNoise3(pos * 0.01)) * 254;
@@ -75,7 +75,7 @@ const SceneA = {
 const SceneB = {
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.3, 0.6),
   source: `
-  fn distanceToScene(pos : vec3<f32>) -> f32 {
+  fn distanceToScene(pos : vec3<f32>, time : f32) -> f32 {
     var origin : vec3<f32> = pos - volume.center;
     var r : mat3x3<f32> = rotateX(PI * -0.5);
     return opUnion(
@@ -89,8 +89,8 @@ const SceneB = {
       )
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> f32 {
-    if (distanceToScene(pos) > 0.01) {
+  fn getValueAt(pos : vec3<f32>, time : f32) -> f32 {
+    if (distanceToScene(pos, time) > 0.01) {
       return 0;
     }
     return 1 + abs(simplexNoise3(pos * 0.01)) * 254;
@@ -101,7 +101,7 @@ const SceneB = {
 const SceneC = {
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.2, 0.4),
   source: `
-  fn getValueAt(pos : vec3<f32>) -> f32 {
+  fn getValueAt(pos : vec3<f32>, time : f32) -> f32 {
     var p : vec3<f32> = pos + vec3<f32>(0, 0, round(time * 100));
     var h : f32 = abs(simplexNoise3(p * 0.01)) * volume.size.y;
     if (pos.y > h) {
@@ -115,7 +115,7 @@ const SceneC = {
 const SceneD = {
   onLoad: (renderer) => renderer.setClearColor(0.1, 0.1, 0.1),
   source: `
-  fn distanceToScene(pos : vec3<f32>) -> f32 {
+  fn distanceToScene(pos : vec3<f32>, time : f32) -> f32 {
     if (sdSphere(pos - volume.center, volume.size.x * 0.35) > 0.01) {
       return 1;
     }
@@ -138,8 +138,8 @@ const SceneD = {
       1
     );
   }
-  fn getValueAt(pos : vec3<f32>) -> f32 {
-    if (distanceToScene(pos) > 0.01) {
+  fn getValueAt(pos : vec3<f32>, time : f32) -> f32 {
+    if (distanceToScene(pos, time) > 0.01) {
       return 0;
     }
     return 1 + abs(simplexNoise3(floor(pos / 32))) * 254;

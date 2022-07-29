@@ -22,6 +22,7 @@ const Main = async () => {
 
   const volume = new Volume({
     device,
+    time: renderer.time,
     width: 300,
     height: 300,
     depth: 300,
@@ -51,6 +52,7 @@ const Main = async () => {
     }
     source.innerText = text;
     renderer.atlas.compute(scene.atlas);
+    renderer.postprocessing.setEffect(scene.effect);
     volume.setScene(scene);
     if (scene.onLoad) {
       scene.onLoad(renderer, volume);
@@ -85,6 +87,7 @@ const Main = async () => {
       );
     }
 
+    renderer.time.set(time);
     const command = device.createCommandEncoder();
     if (
       scene.maxFPS === undefined
@@ -92,7 +95,7 @@ const Main = async () => {
       || simulationClock === -1
     ) {
       simulationClock = time;
-      volume.compute(command, time);
+      volume.compute(command);
     }
     renderer.render(command, volume);
     device.queue.submit([command.finish()]);
