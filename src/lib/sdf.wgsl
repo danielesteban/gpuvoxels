@@ -3,9 +3,9 @@ fn sdBox(p : vec3<f32>, r : vec3<f32>) -> f32 {
   return length(max(q, vec3<f32>(0))) + min(max(q.x, max(q.y, q.z)), 0);
 }
 
-fn sdCapsule(p : vec3<f32>, r : vec3<f32>) -> f32 {
-  var q : vec3<f32> = vec3<f32>(p.x, clamp(p.y, -r.y + r.x, r.y - r.x), p.y);
-  return length(q) - q.x;
+fn sdCapsule(p : vec3<f32>, r : vec2<f32>) -> f32 {
+  var q : vec3<f32> = vec3<f32>(p.x, p.y - clamp(p.y, -r.y + r.x, r.y - r.x), p.z);
+  return length(q) - r.x;
 }
 
 fn sdEllipsoid(p : vec3<f32>, r : vec3<f32>) -> f32 {
