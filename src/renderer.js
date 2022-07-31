@@ -153,8 +153,8 @@ class Renderer {
     this.canvas = canvas || document.createElement('canvas');
     // I have no idea why but if I don't do this, sometimes it crashes with:
     // D3D12 reset command allocator failed with E_FAIL
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = Math.floor(window.innerWidth * (window.devicePixelRatio || 1));
+    this.canvas.height = Math.floor(window.innerHeight * (window.devicePixelRatio || 1));
     this.context = this.canvas.getContext('webgpu');
     this.context.configure({ alphaMode: 'opaque', device, format });
     this.device = device;
