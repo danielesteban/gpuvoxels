@@ -4,12 +4,24 @@ import { vec3 } from 'gl-matrix';
 import Input from './input.js';
 import Scenes from './scenes.js';
 
+const checkConstSupport = async (device) => {
+  const module = device.createShaderModule({
+    code: `const checkConstSupport : f32 = 1;`,
+  });
+  const { messages } = await module.compilationInfo();
+  if (messages.find(({ type }) => type === 'error')) {
+    throw new Error('ConstSupport');
+  }
+};
+
 const Main = async () => {
   if (!navigator.gpu || !navigator.gpu.getPreferredCanvasFormat) {
     throw new Error('WebGPU');
   }
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
+  await checkConstSupport(device);
+
   const renderer = new Renderer({
     adapter,
     device,
