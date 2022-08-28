@@ -12,9 +12,9 @@ import { terser } from 'rollup-plugin-terser';
 const outputPath = path.resolve(__dirname, 'dist');
 const production = !process.env.ROLLUP_WATCH;
 const token = production ? (
-  'AljrTfjI6xTQFZyLVzrrbufea9X2fRcjPvP+pt35W1ikXOT31ZYzgt75daWfCCRnrHPcw4/db8yLbhBKWoDblwIAAABVeyJvcmlnaW4iOiJodHRwczovL2dwdXZveGVscy5nYXR1bmVzLmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjYzNzE4Mzk5fQ=='
+  'AocN2Pmq4zNS/s+17/8pCsjM6O8UUhvGA8NnGQmWqBPAIhC8DF5ep7TL7YUDVUXpvvNUF0AVOfFVazeFwrg4ggoAAABVeyJvcmlnaW4iOiJodHRwczovL2dwdXZveGVscy5nYXR1bmVzLmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjc1MjA5NTk5fQ=='
 ) : (
-  'AvyDIV+RJoYs8fn3W6kIrBhWw0te0klraoz04mw/nPb8VTus3w5HCdy+vXqsSzomIH745CT6B5j1naHgWqt/tw8AAABJeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjYzNzE4Mzk5fQ=='
+  'AkoE8+yWvZMfOjxrWIWvq/aMz5KEEkAlww7Bx2CAzx3UG3J1wdvOGTgLm48isIN9VbQbJjo0AKfKDVktsf4q7AoAAABJeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjc1MjA5NTk5fQ=='
 );
 
 export default {
